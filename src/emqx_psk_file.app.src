@@ -1,0 +1,7 @@
+{application,emqx_psk_file,
+             [{description,"EMQX PSK Plugin from File"},
+              {vsn,"git"},
+              {modules,[]},
+              {registered,[emqx_psk_file_sup]},
+              {applications,[kernel,stdlib]},
+              {mod,{emqx_psk_file_app,[]}}]}.
