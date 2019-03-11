@@ -26,12 +26,16 @@
 -export([on_psk_lookup/2]).
 
 -define(TAB, ?MODULE).
+-define(LF, 10).
+
+-record(psk_entry, {psk_id :: binary(),
+                    psk_str :: binary()}).
 
 %% Called when the plugin application start
 load(Env) ->
-    Tab = ets:new(?TAB, [set, named_table]),
+    ets:new(?TAB, [set, named_table, {keypos, #psk_entry.psk_id}]),
     {ok, PskFile} = file:open(get_value(path, Env), [read, raw, binary, read_ahead]),
-    preload_psks(Tab, PskFile, bin(get_value(delimiter, Env))),
+    preload_psks(PskFile, bin(get_value(delimiter, Env))),
     file:close(PskFile),
     emqx:hook('tls_handshake.psk_lookup', fun ?MODULE:on_psk_lookup/2, []).
 
@@ -40,17 +44,37 @@ unload() ->
     emqx:unhook('tls_handshake.psk_lookup', fun ?MODULE:on_psk_lookup/2).
 
 on_psk_lookup(ClientPSKID, UserState) ->
-    {ok, UserState}.
+    case ets:lookup(?TAB, ClientPSKID) of
+        [#psk_entry{psk_str = PskStr}] ->
+            {stop, PskStr};
+        [] ->
+            {ok, UserState}
+    end.
 
-preload_psks(Tab, FileHandler, Delimiter) ->
+preload_psks(FileHandler, Delimiter) ->
     case file:read_line(FileHandler) of
         {ok, Line} ->
-            Result = binary:split(Line, Delimiter),
-            logger:error("===== read result: ~p", [Result]);
+            case binary:split(Line, Delimiter) of
+                [Key, Rem] ->
+                    ets:insert(?TAB, #psk_entry{psk_id = Key, psk_str = trim_lf(Rem)}),
+                    preload_psks(FileHandler, Delimiter);
+                [Line] ->
+                    logger:warning("~p - Invalid line: ~p, delimiter: ~p", [?MODULE, Line, Delimiter])
+            end;
+        eof ->
+            logger:info("~p - PSK file is preloaded", [?MODULE]);
         {error, Reason} ->
-            logger:error("Read lines from PSK file: ~p", [Reason]),
-            erlang:throw(read_psk_file, Reason)
+            logger:error("~p - Read lines from PSK file: ~p", [?MODULE, Reason])
     end.
 
 bin(Str) when is_list(Str) -> list_to_binary(Str);
 bin(Bin) when is_binary(Bin) -> Bin.
+
+%% Trim the tailing LF
+trim_lf(<<>>) -> <<>>;
+trim_lf(Bin) ->
+    Size = byte_size(Bin),
+    case binary:at(Bin, Size-1) of
+        ?LF -> binary_part(Bin, 0, Size-1);
+        _ -> Bin
+    end.
