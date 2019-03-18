@@ -15,6 +15,8 @@ NO_AUTOPATCH = cuttlefish
 
 COVER = true
 
+$(shell [ -f erlang.mk ] || curl -s -o erlang.mk https://raw.githubusercontent.com/emqx/erlmk/master/erlang.mk)
+
 include $(if $(ERLANG_MK_FILENAME),$(ERLANG_MK_FILENAME),erlang.mk)
 
 app:: rebar.config
