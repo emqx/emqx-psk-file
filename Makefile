@@ -5,7 +5,7 @@ DEPS = emqx
 dep_emqx = git https://github.com/emqx/emqx
 
 BUILD_DEPS = emqx cuttlefish
-dep_cuttlefish = git https://github.com/emqx/cuttlefish
+dep_cuttlefish = git https://github.com/emqx/cuttlefish v2.2.1
 
 ERLC_OPTS += +debug_info
 
