@@ -1,25 +1,25 @@
-PROJECT = emqx_psk_file
-PROJECT_DESCRIPTION = EMQX PSK plugin from a file
+## shallow clone for speed
 
-DEPS = emqx
-dep_emqx = git https://github.com/emqx/emqx
+REBAR_GIT_CLONE_OPTIONS += --depth 1
+export REBAR_GIT_CLONE_OPTIONS
 
-BUILD_DEPS = emqx cuttlefish
-dep_cuttlefish = git https://github.com/emqx/cuttlefish v2.2.1
+REBAR = rebar3
+all: compile
 
-ERLC_OPTS += +debug_info
+compile:
+	$(REBAR) compile
 
-TEST_ERLC_OPTS += +debug_info
+clean: distclean
 
-NO_AUTOPATCH = cuttlefish
+ct: compile
+	$(REBAR) as test ct -v
 
-COVER = true
+eunit: compile
+	$(REBAR) as test eunit
 
-$(shell [ -f erlang.mk ] || curl -s -o erlang.mk https://raw.githubusercontent.com/emqx/erlmk/master/erlang.mk)
+xref:
+	$(REBAR) xref
 
-include $(if $(ERLANG_MK_FILENAME),$(ERLANG_MK_FILENAME),erlang.mk)
-
-app:: rebar.config
-
-app.config::
-	./deps/cuttlefish/cuttlefish -l info -e etc/ -c etc/emqx_psk_file.conf -i priv/emqx_psk_file.schema -d data
+distclean:
+	@rm -rf _build
+	@rm -f data/app.*.config data/vm.*.args rebar.lock
