@@ -17,8 +17,9 @@
 -module(emqx_psk_file).
 
 -include_lib("emqx/include/emqx.hrl").
+-include_lib("emqx/include/logger.hrl").
 
--import(proplists, [get_value/2, get_value/3]).
+-import(proplists, [get_value/2]).
 
 -export([load/1, unload/0]).
 
@@ -59,12 +60,12 @@ preload_psks(FileHandler, Delimiter) ->
                     ets:insert(?TAB, #psk_entry{psk_id = Key, psk_str = trim_lf(Rem)}),
                     preload_psks(FileHandler, Delimiter);
                 [Line] ->
-                    logger:warning("~p - Invalid line: ~p, delimiter: ~p", [?MODULE, Line, Delimiter])
+                    ?LOG(warning, "[~p] - Invalid line: ~p, delimiter: ~p", [?MODULE, Line, Delimiter])
             end;
         eof ->
-            logger:info("~p - PSK file is preloaded", [?MODULE]);
+            ?LOG(info, "[~p] - PSK file is preloaded", [?MODULE]);
         {error, Reason} ->
-            logger:error("~p - Read lines from PSK file: ~p", [?MODULE, Reason])
+            ?LOG(error, "[~p] - Read lines from PSK file: ~p", [?MODULE, Reason])
     end.
 
 bin(Str) when is_list(Str) -> list_to_binary(Str);
